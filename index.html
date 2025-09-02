@@ -181,7 +181,7 @@ details > summary{
             <button id="btnAgenda" class="btn btn-soft">🗓️ Agenda</button>
             <button id="btnRegistrar" class="btn btn-soft" disabled>📝 Registrar llamada</button>
             <button id="btnReporte" class="btn btn-soft">📊 Reporte</button>
-            <button id="btnFicha" class="btn btn-soft" disabled>👁️ Ver ficha</button>
+            <button id="btnFicha" class="btn btn-soft">👁️ Ver ficha</button>
             <button id="btnNuevoCliente" class="btn btn-soft">➕ Nuevo cliente</button>
             <button id="btnExport" class="btn">⭳ Exportar CSV</button>
             <button id="btnRestaurar" class="btn btn-danger">⟲ Restaurar</button>
@@ -284,10 +284,13 @@ details > summary{
         <div><label>Fecha y hora</label><input id="callFechaHora" type="datetime-local" /></div>
         <div><label>Resultado</label>
           <select id="callResultado">
-            <option value="Exitosa">Exitosa</option><option value="No contesta">No contesta</option>
-            <option value="Ocupado">Ocupado</option><option value="Número equivocado">Número equivocado</option>
-            <option value="Rechazada">Rechazada</option>
-          </select>
+<option value="Exitosa">Exitosa</option>
+<option value="Gestión de pedido recibido">Gestión de pedido recibido</option>
+<option value="No contesta">No contesta</option>
+<option value="Ocupado">Ocupado</option>
+<option value="Número equivocado">Número equivocado</option>
+<option value="Rechazada">Rechazada</option>
+</select>
         </div>
         <div><label>Duración (seg.)</label><input id="callDuracion" type="number" min="0" step="1" value="0" /></div>
         <div></div>
@@ -423,6 +426,35 @@ details > summary{
   <div class="errbar" id="errbar"></div>
 
 <script>
+
+// === MODIFICACIÓN: Ocultar citas no programadas de la vista actual ===
+// Esta función debe ser invocada después de cambiar el estatus de una cita
+function removeNonProgramadasFromView() {
+  const conts = ['agHoy', 'agSemana', 'agFuturas'];
+  conts.forEach(id => {
+    const col = document.getElementById(id);
+    if (!col) return;
+    const tarjetas = col.querySelectorAll('.kcard');
+    tarjetas.forEach(card => {
+      const select = card.querySelector('select');
+      if (select && select.value !== 'programada') {
+        card.remove(); // Oculta de la vista
+      }
+    });
+  });
+}
+
+// Hook en guardar cita (ya debe existir lógica similar, aquí extendemos)
+document.querySelectorAll('.kcol').forEach(col => {
+  col.addEventListener('change', e => {
+    if (e.target && e.target.tagName === 'SELECT') {
+      setTimeout(() => {
+        removeNonProgramadasFromView(); // Actualiza vista si el usuario cambia estatus
+      }, 100);
+    }
+  });
+});
+
 // ======================= CONFIG =======================
 
 const DEFAULT_CONFIG = { 
@@ -895,6 +927,35 @@ window.addEventListener('DOMContentLoaded', ()=>{ init(); initMap(); });
 </script>
 
 <script>
+
+// === MODIFICACIÓN: Ocultar citas no programadas de la vista actual ===
+// Esta función debe ser invocada después de cambiar el estatus de una cita
+function removeNonProgramadasFromView() {
+  const conts = ['agHoy', 'agSemana', 'agFuturas'];
+  conts.forEach(id => {
+    const col = document.getElementById(id);
+    if (!col) return;
+    const tarjetas = col.querySelectorAll('.kcard');
+    tarjetas.forEach(card => {
+      const select = card.querySelector('select');
+      if (select && select.value !== 'programada') {
+        card.remove(); // Oculta de la vista
+      }
+    });
+  });
+}
+
+// Hook en guardar cita (ya debe existir lógica similar, aquí extendemos)
+document.querySelectorAll('.kcol').forEach(col => {
+  col.addEventListener('change', e => {
+    if (e.target && e.target.tagName === 'SELECT') {
+      setTimeout(() => {
+        removeNonProgramadasFromView(); // Actualiza vista si el usuario cambia estatus
+      }, 100);
+    }
+  });
+});
+
 function dedupById(arr) {
     const seen = new Set();
     return arr.filter(item => {
@@ -963,5 +1024,309 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 </script>
 
+
+
+<!-- Modal Ver Ficha -->
+<div id="modalFicha" class="modal hidden" aria-modal="true" role="dialog">
+  <div class="card" style="width:min(700px, 90vw); max-height:90vh; overflow:auto;">
+    <h3 class="title">👁️ Ficha del Cliente</h3>
+    <div class="grid grid-2">
+      <div><label>Código</label><input id="fichaCod" type="text" readonly /></div>
+      <div><label>Nombre / Razón Social</label><input id="fichaNombre" type="text" readonly /></div>
+      <div><label>Latitud</label><input id="fichaLat" type="text" readonly /></div>
+      <div><label>Longitud</label><input id="fichaLon" type="text" readonly /></div>
+      <div><label>Teléfono</label><input id="fichaTel" type="text" readonly /></div>
+      <div><label>Celular</label><input id="fichaCel" type="text" readonly /></div>
+      <div><label>Provincia</label><input id="fichaProv" type="text" readonly /></div>
+      <div><label>Vendedor</label><input id="fichaVend" type="text" readonly /></div>
+      <div><label>Gestor</label><input id="fichaGestor" type="text" readonly /></div>
+      <div><label>Empresa</label><input id="fichaEmpresa" type="text" readonly /></div>
+    </div>
+    <div class="toolbar" style="justify-content:flex-end; margin-top:10px;">
+      <button onclick="closeFichaModal()" class="btn btn-soft">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div id="modalFicha" class="modal hidden" aria-modal="true" role="dialog">
+  <div class="card" style="width:min(600px, 90vw);">
+    <h3 class="title">👁️ Ficha del Cliente</h3>
+    <p class="muted">Aquí se mostrará la información detallada del cliente seleccionado.</p>
+    <div class="toolbar" style="justify-content:flex-end;">
+      <button onclick="closeFichaModal()" class="btn btn-soft">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal Nuevo Cliente -->
+<div id="modalNuevoCliente" class="modal hidden" aria-modal="true" role="dialog">
+  <div class="card" style="width:min(700px, 90vw); max-height:90vh; overflow:auto;">
+    <h3 class="title">➕ Nuevo Cliente</h3>
+    <div class="grid grid-2">
+      <div><label>Código</label><input id="nuevoCod" type="text" /></div>
+      <div><label>Razón Social</label><input id="nuevoNombre" type="text" /></div>
+      <div><label>Latitud</label><input id="nuevoLat" type="text" /></div>
+      <div><label>Longitud</label><input id="nuevoLon" type="text" /></div>
+      <div><label>Teléfono</label><input id="nuevoTel" type="text" /></div>
+      <div><label>Celular</label><input id="nuevoCel" type="text" /></div>
+      <div><label>Provincia</label><input id="nuevoProv" type="text" /></div>
+      <div><label>Vendedor</label><input id="nuevoVend" type="text" /></div>
+      <div><label>Gestor</label><input id="nuevoGestor" type="text" /></div>
+      <div><label>Empresa</label><input id="nuevoEmpresa" type="text" /></div>
+    </div>
+    <div class="toolbar" style="justify-content:flex-end; margin-top:10px;">
+      <button onclick="closeNuevoClienteModal()" class="btn btn-soft">Cancelar</button>
+      <button onclick="guardarNuevoCliente()" class="btn btn-primary">Guardar</button>
+    </div>
+    <p id="nuevoClienteStatus" class="muted" style="margin-top:6px;"></p>
+  </div>
+</div>
+
+<div id="modalNuevoCliente" class="modal hidden" aria-modal="true" role="dialog">
+  <div class="card" style="width:min(600px, 90vw);">
+    <h3 class="title">➕ Nuevo Cliente</h3>
+    <p class="muted">Formulario para agregar un nuevo cliente (en desarrollo).</p>
+    <div class="toolbar" style="justify-content:flex-end;">
+      <button onclick="closeNuevoClienteModal()" class="btn btn-soft">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+// === MODIFICACIÓN: Ocultar citas no programadas de la vista actual ===
+// Esta función debe ser invocada después de cambiar el estatus de una cita
+function removeNonProgramadasFromView() {
+  const conts = ['agHoy', 'agSemana', 'agFuturas'];
+  conts.forEach(id => {
+    const col = document.getElementById(id);
+    if (!col) return;
+    const tarjetas = col.querySelectorAll('.kcard');
+    tarjetas.forEach(card => {
+      const select = card.querySelector('select');
+      if (select && select.value !== 'programada') {
+        card.remove(); // Oculta de la vista
+      }
+    });
+  });
+}
+
+// Hook en guardar cita (ya debe existir lógica similar, aquí extendemos)
+document.querySelectorAll('.kcol').forEach(col => {
+  col.addEventListener('change', e => {
+    if (e.target && e.target.tagName === 'SELECT') {
+      setTimeout(() => {
+        removeNonProgramadasFromView(); // Actualiza vista si el usuario cambia estatus
+      }, 100);
+    }
+  });
+});
+
+
+// Abrir/Cerrar modal Ver Ficha
+document.getElementById('btnFicha').addEventListener('click', () => {
+  document.getElementById('modalFicha').classList.remove('hidden');
+  document.body.classList.add('no-scroll');
+});
+function closeFichaModal() {
+  document.getElementById('modalFicha').classList.add('hidden');
+  document.body.classList.remove('no-scroll');
+}
+
+// Abrir/Cerrar modal Nuevo Cliente
+document.getElementById('btnNuevoCliente').addEventListener('click', () => {
+  document.getElementById('modalNuevoCliente').classList.remove('hidden');
+  document.body.classList.add('no-scroll');
+});
+function closeNuevoClienteModal() {
+  document.getElementById('modalNuevoCliente').classList.add('hidden');
+  document.body.classList.remove('no-scroll');
+}
+
+</script>
+
+
+<!-- Modal Ver Ficha -->
+<div id="modalFicha" class="modal hidden" aria-modal="true" role="dialog">
+  <div class="card" style="width:min(700px, 90vw); max-height:90vh; overflow:auto;">
+    <h3 class="title">👁️ Ficha del Cliente</h3>
+    <div class="grid grid-2">
+      <div><label>Código</label><input id="fichaCod" type="text" readonly /></div>
+      <div><label>Nombre / Razón Social</label><input id="fichaNombre" type="text" readonly /></div>
+      <div><label>Latitud</label><input id="fichaLat" type="text" readonly /></div>
+      <div><label>Longitud</label><input id="fichaLon" type="text" readonly /></div>
+      <div><label>Teléfono</label><input id="fichaTel" type="text" readonly /></div>
+      <div><label>Celular</label><input id="fichaCel" type="text" readonly /></div>
+      <div><label>Provincia</label><input id="fichaProv" type="text" readonly /></div>
+      <div><label>Vendedor</label><input id="fichaVend" type="text" readonly /></div>
+      <div><label>Gestor</label><input id="fichaGestor" type="text" readonly /></div>
+      <div><label>Empresa</label><input id="fichaEmpresa" type="text" readonly /></div>
+    </div>
+    <div class="toolbar" style="justify-content:flex-end; margin-top:10px;">
+      <button onclick="closeFichaModal()" class="btn btn-soft">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div id="modalFicha" class="modal hidden" aria-modal="true" role="dialog">
+  <div class="card" style="width:min(700px, 90vw); max-height:90vh; overflow:auto;">
+    <h3 class="title">👁️ Ficha del Cliente</h3>
+    <div class="grid grid-2">
+      <div><label>Código</label><input id="fichaCod" type="text" readonly /></div>
+      <div><label>Nombre / Razón Social</label><input id="fichaNombre" type="text" readonly /></div>
+      <div><label>Latitud</label><input id="fichaLat" type="text" readonly /></div>
+      <div><label>Longitud</label><input id="fichaLon" type="text" readonly /></div>
+      <div><label>Teléfono</label><input id="fichaTel" type="text" readonly /></div>
+      <div><label>Celular</label><input id="fichaCel" type="text" readonly /></div>
+      <div><label>Provincia</label><input id="fichaProv" type="text" readonly /></div>
+      <div><label>Vendedor</label><input id="fichaVend" type="text" readonly /></div>
+      <div><label>Gestor</label><input id="fichaGestor" type="text" readonly /></div>
+      <div><label>Empresa</label><input id="fichaEmpresa" type="text" readonly /></div>
+    </div>
+    <div class="toolbar" style="justify-content:flex-end; margin-top:10px;">
+      <button onclick="closeFichaModal()" class="btn btn-soft">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal Nuevo Cliente -->
+<div id="modalNuevoCliente" class="modal hidden" aria-modal="true" role="dialog">
+  <div class="card" style="width:min(700px, 90vw); max-height:90vh; overflow:auto;">
+    <h3 class="title">➕ Nuevo Cliente</h3>
+    <div class="grid grid-2">
+      <div><label>Código</label><input id="nuevoCod" type="text" /></div>
+      <div><label>Razón Social</label><input id="nuevoNombre" type="text" /></div>
+      <div><label>Latitud</label><input id="nuevoLat" type="text" /></div>
+      <div><label>Longitud</label><input id="nuevoLon" type="text" /></div>
+      <div><label>Teléfono</label><input id="nuevoTel" type="text" /></div>
+      <div><label>Celular</label><input id="nuevoCel" type="text" /></div>
+      <div><label>Provincia</label><input id="nuevoProv" type="text" /></div>
+      <div><label>Vendedor</label><input id="nuevoVend" type="text" /></div>
+      <div><label>Gestor</label><input id="nuevoGestor" type="text" /></div>
+      <div><label>Empresa</label><input id="nuevoEmpresa" type="text" /></div>
+    </div>
+    <div class="toolbar" style="justify-content:flex-end; margin-top:10px;">
+      <button onclick="closeNuevoClienteModal()" class="btn btn-soft">Cancelar</button>
+      <button onclick="guardarNuevoCliente()" class="btn btn-primary">Guardar</button>
+    </div>
+    <p id="nuevoClienteStatus" class="muted" style="margin-top:6px;"></p>
+  </div>
+</div>
+
+<div id="modalNuevoCliente" class="modal hidden" aria-modal="true" role="dialog">
+  <div class="card" style="width:min(700px, 90vw); max-height:90vh; overflow:auto;">
+    <h3 class="title">➕ Nuevo Cliente</h3>
+    <div class="grid grid-2">
+      <div><label>Código</label><input id="nuevoCod" type="text" /></div>
+      <div><label>Nombre / Razón Social</label><input id="nuevoNombre" type="text" /></div>
+      <div><label>Latitud</label><input id="nuevoLat" type="text" /></div>
+      <div><label>Longitud</label><input id="nuevoLon" type="text" /></div>
+      <div><label>Teléfono</label><input id="nuevoTel" type="text" /></div>
+      <div><label>Celular</label><input id="nuevoCel" type="text" /></div>
+      <div><label>Provincia</label><input id="nuevoProv" type="text" /></div>
+      <div><label>Vendedor</label><input id="nuevoVend" type="text" /></div>
+      <div><label>Gestor</label><input id="nuevoGestor" type="text" /></div>
+      <div><label>Empresa</label><input id="nuevoEmpresa" type="text" /></div>
+    </div>
+    <div class="toolbar" style="justify-content:flex-end; margin-top:10px;">
+      <button onclick="closeNuevoClienteModal()" class="btn btn-soft">Cancelar</button>
+      <button onclick="guardarNuevoCliente()" class="btn btn-primary">Guardar</button>
+    </div>
+    <p id="nuevoClienteStatus" class="muted" style="margin-top:6px;"></p>
+  </div>
+</div>
+
+<script>
+
+// === MODIFICACIÓN: Ocultar citas no programadas de la vista actual ===
+// Esta función debe ser invocada después de cambiar el estatus de una cita
+function removeNonProgramadasFromView() {
+  const conts = ['agHoy', 'agSemana', 'agFuturas'];
+  conts.forEach(id => {
+    const col = document.getElementById(id);
+    if (!col) return;
+    const tarjetas = col.querySelectorAll('.kcard');
+    tarjetas.forEach(card => {
+      const select = card.querySelector('select');
+      if (select && select.value !== 'programada') {
+        card.remove(); // Oculta de la vista
+      }
+    });
+  });
+}
+
+// Hook en guardar cita (ya debe existir lógica similar, aquí extendemos)
+document.querySelectorAll('.kcol').forEach(col => {
+  col.addEventListener('change', e => {
+    if (e.target && e.target.tagName === 'SELECT') {
+      setTimeout(() => {
+        removeNonProgramadasFromView(); // Actualiza vista si el usuario cambia estatus
+      }, 100);
+    }
+  });
+});
+
+
+// Mostrar ficha de cliente
+document.getElementById('btnFicha').addEventListener('click', () => {
+  const x = STATE.selected;
+  if (!x) return;
+  document.getElementById('fichaCod').value = x.cod || '';
+  document.getElementById('fichaNombre').value = x.nombre || '';
+  document.getElementById('fichaLat').value = x.lat || '';
+  document.getElementById('fichaLon').value = x.lon || '';
+  document.getElementById('fichaTel').value = x.telefono1 || '';
+  document.getElementById('fichaCel').value = x.celular || '';
+  document.getElementById('fichaProv').value = x.provincia || '';
+  document.getElementById('fichaVend').value = x.vendedor || '';
+  document.getElementById('fichaGestor').value = x.gestor || '';
+  document.getElementById('fichaEmpresa').value = x.empresa || '';
+  document.getElementById('modalFicha').classList.remove('hidden');
+  document.body.classList.add('no-scroll');
+});
+function closeFichaModal() {
+  document.getElementById('modalFicha').classList.add('hidden');
+  document.body.classList.remove('no-scroll');
+}
+
+// Modal Nuevo Cliente
+document.getElementById('btnNuevoCliente').addEventListener('click', () => {
+  document.querySelectorAll('#modalNuevoCliente input').forEach(i => i.value = '');
+  document.getElementById('nuevoClienteStatus').textContent = '';
+  document.getElementById('modalNuevoCliente').classList.remove('hidden');
+  document.body.classList.add('no-scroll');
+});
+function closeNuevoClienteModal() {
+  document.getElementById('modalNuevoCliente').classList.add('hidden');
+  document.body.classList.remove('no-scroll');
+}
+function guardarNuevoCliente() {
+  const nuevo = {
+    cod: document.getElementById('nuevoCod').value.trim(),
+    nombre: document.getElementById('nuevoNombre').value.trim(),
+    lat: parseCoord(document.getElementById('nuevoLat').value),
+    lon: parseCoord(document.getElementById('nuevoLon').value),
+    telefono1: document.getElementById('nuevoTel').value.trim(),
+    celular: document.getElementById('nuevoCel').value.trim(),
+    provincia: document.getElementById('nuevoProv').value.trim(),
+    vendedor: document.getElementById('nuevoVend').value.trim(),
+    gestor: document.getElementById('nuevoGestor').value.trim(),
+    empresa: document.getElementById('nuevoEmpresa').value.trim(),
+    semana: 'Por asignar',
+    dia: 'Por asignar'
+  };
+  if (!nuevo.cod || !nuevo.nombre) {
+    document.getElementById('nuevoClienteStatus').textContent = 'Código y Nombre son obligatorios.';
+    return;
+  }
+  STATE.joined.push(nuevo);
+  applyFilters();
+  closeNuevoClienteModal();
+  showErr('Nuevo cliente agregado (localmente).');
+}
+
+</script>
 </body>
 </html>
